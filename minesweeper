@@ -1,0 +1,321 @@
+using System;
+using System.Linq;
+
+namespace MinesweeperGame
+{
+    public class Minesweeper
+    {
+        private const int NumberOfRows = 10;
+        private const int NumberOColumns = 10;
+        private const int NumberOBombs = 10;
+
+        public static void Main(string[] args)
+        {
+            /*
+             currently known issues:
+            * player entries for fields to dig up that are in the double digits are not recognized as such. Lines 93-94 need to be adjusted to account for ddouble digit numbers
+            * some quality of life improvements such as preventing selection of fields already claimed and visibility of bombs once sclected is missing.
+             */
+
+            //DECLARATION:
+            string playerRepsone;
+            int gamePlayLoopCounter = 0;
+            Dictionary<string, Dictionary<string, string>> gameBoardDictionary;
+            Dictionary<string, Dictionary<string, string>> shadowGameBoardDictionary;
+
+            //ASSERTAIN PLAYER UNDERSTANDS THE RULES:
+            Console.WriteLine("Hello there!\nWelcome to discount Minesweeper!");
+            Console.WriteLine("Are you familiar with the game's rules? <yes/no>");
+            playerRepsone = Console.ReadLine();
+            while (!Equals(playerRepsone.ToLower(), "yes"))
+            {
+                if (!Equals(playerRepsone.ToLower(), "no"))
+                {
+                    Console.WriteLine("Sorry, didn't quite catch that one. Care to repeat?");
+                    playerRepsone = Console.ReadLine();
+                } else if (Equals(playerRepsone.ToLower(), "no"))
+                {
+                    explainTheRules();
+                }
+                Console.WriteLine("Have you understood the rules?");
+                playerRepsone = Console.ReadLine();
+            }
+            Console.WriteLine("Okay, let's go!");
+
+            //FUNCTION CALLS:
+            gameBoardDictionary = createGameBoard(NumberOfRows, NumberOColumns);
+            shadowGameBoardDictionary = createGameBoard(NumberOfRows, NumberOColumns);
+            planBombs(shadowGameBoardDictionary, NumberOBombs);
+            printGameBoard(gameBoardDictionary);
+
+            //PLAY THE GAME LOOP:
+            while (allBombsFound(shadowGameBoardDictionary, gameBoardDictionary) || checkAllFiels(shadowGameBoardDictionary))
+            {
+                Console.WriteLine($"current gamePlayLoopCounter: {gamePlayLoopCounter}");
+                Boolean isCurrentMoveValid = playGame(gameBoardDictionary, shadowGameBoardDictionary);
+                if (!isCurrentMoveValid)
+                {
+                    Console.WriteLine("Oh no, you've dug up a bomb!\nGame over!");
+                    return;
+                }
+                if (gamePlayLoopCounter == 10)
+                {
+                    Console.WriteLine("Seems like you might need a hint, am I correct? <yes/no>");
+                    playerRepsone = Console.ReadLine();
+                    if (Equals(playerRepsone.ToLower(), "yes"))
+                    {
+                        printGameBoard(shadowGameBoardDictionary);
+                    }
+                    gamePlayLoopCounter = 0;
+                }
+                printGameBoard(gameBoardDictionary);
+                gamePlayLoopCounter++;
+            }
+
+            //FUNCTIONS:
+            static void explainTheRules()
+            {
+                Console.WriteLine("Here are the rules as requested:\n1. Just don't die!\nGood luck!");
+            }
+
+            static Boolean playGame(Dictionary<string, Dictionary<string, string>> gameBoardDictionary, Dictionary<string, Dictionary<string, string>> shadowGameBoardDictionary) //functionn will take player input and updates the game's board dictionary to refelct player input
+            {
+                string row;
+                string column;
+                Boolean isMoveValid;
+                Console.WriteLine($"Please select a field to dig: <row(0-{gameBoardDictionary.Keys.Count - 1}), column(0-{gameBoardDictionary.Keys.Count - 1})>");
+                string playerInput = Console.ReadLine();
+                while (!playerInput.Contains(',') || playerInput[0..playerInput.IndexOf(',')].Length > NumberOfRows.ToString().Length || playerInput[(playerInput.IndexOf(',') + 1)..playerInput.Length].Length > NumberOColumns.ToString().Length || int.Parse(playerInput[0..playerInput.IndexOf(',')]) > gameBoardDictionary.Keys.Count || int.Parse(playerInput[(playerInput.IndexOf(',') + 1)..playerInput.Length]) > gameBoardDictionary.Keys.Count)
+                {
+                    Console.WriteLine($"\"{playerInput[..playerInput.IndexOf(',')]}, {playerInput[playerInput.IndexOf(',')..playerInput.Length]}\" was not a valid entry. Please try again.");
+                    Console.WriteLine("Please select a field to dig: <row(0-9), column(0-9)>");
+                    playerInput = Console.ReadLine();
+                }
+                row = playerInput.ElementAt(0).ToString();
+                column = playerInput.ElementAt(playerInput.Length - 1).ToString();
+                isMoveValid = computerSearchGameBoard(shadowGameBoardDictionary, row, column);
+                if (isMoveValid)
+                {
+                    Console.WriteLine("Outstanding move!");
+                    shadowGameBoardDictionary[row][column] = "O ";
+                    gameBoardDictionary[row][column] = " O";
+                    return true;
+                }
+                else
+                {
+                    Console.WriteLine("Mission failed! We'll get'em next time!");
+                    gameBoardDictionary[row][column] = "X ";
+                    printGameBoard(gameBoardDictionary);
+                    return false;
+                }
+                return false;
+            }
+
+            static Boolean checkAllFiels(Dictionary<string, Dictionary<string, string>> gameBoardDictionary)
+            {
+                Boolean result;
+                List<string> allFields = new();
+                Dictionary<string, string> innerDictionary = new();
+                for (int i = 0; i < gameBoardDictionary.Keys.Count; i++)
+                {
+                    innerDictionary = gameBoardDictionary[$"{i}"];
+                    foreach (KeyValuePair<string, string> keyValuePair in innerDictionary)
+                    {
+                        allFields.Add(keyValuePair.Value.Trim());
+                    }
+                }
+                if (allFields.Contains(" "))
+                {
+                    result = true;
+                }
+                else
+                {
+                    result = false;
+                }
+                return result;
+            }
+
+            static Boolean allBombsFound(Dictionary<string, Dictionary<string, string>> shadowGameBoardDictionary, Dictionary<string, Dictionary<string, string>> gameBoardDictionary)
+            {
+                List<string> gameBoardDictionaryFields = new();
+                List<string> shadowGameBoardDictionaryields = new();
+                Dictionary<string, string> innerGameBoardDictionary = new();
+                Dictionary<string, string> innerShadowGameBoardDictionary = new();
+                for (int i = 0; i < shadowGameBoardDictionary.Keys.Count; i++)
+                {
+                    innerShadowGameBoardDictionary = shadowGameBoardDictionary[$"{i}"];
+                    foreach (KeyValuePair<string, string> keyValuePair in innerShadowGameBoardDictionary)
+                    {
+                        shadowGameBoardDictionaryields.Add(keyValuePair.Value.Trim());
+                    }
+                }
+                for (int i = 0; i < gameBoardDictionary.Keys.Count; i++)
+                {
+                    innerGameBoardDictionary = gameBoardDictionary[$"{i}"];
+                    foreach (KeyValuePair<string, string> keyValuePair in innerGameBoardDictionary)
+                    {
+                        gameBoardDictionaryFields.Add(keyValuePair.Value);
+                    }
+                }
+                if (gameBoardDictionaryFields.FindAll(gBDF => gBDF.Contains("X")).Count == shadowGameBoardDictionaryields.FindAll(sGBDF => sGBDF.Contains("X")).Count)
+                {
+                    return false;
+                }
+                else
+                {
+                    return true;
+                }
+            }
+
+            static Dictionary<string, Dictionary<string, string>> createGameBoard(int numberOfRows, int numberOfColumns) //creates an instance of a game board with number of rows and columns in relation to the params provided.
+            {
+                if (numberOfRows > 60 || numberOfColumns > 60)
+                {
+#pragma warning disable CA2208 // Argumentausnahmen korrekt instanziieren
+                    throw new ArgumentOutOfRangeException("Numbers of columns or rows must not exceed 60!");
+#pragma warning restore CA2208 // Argumentausnahmen korrekt instanziieren
+                }
+                Dictionary<string, Dictionary<string, string>> result = new();
+                for (int outer = 0; outer < numberOfRows; outer++)
+                {
+                    Dictionary<string, string> innerResult = new();
+                    for (int inner = 0; inner < numberOfColumns; inner++)
+                    {
+                        innerResult.Add(inner.ToString(), "  ");
+                    }
+                    result.Add(outer.ToString(), innerResult);
+                }
+                return result;
+            }
+
+            static void planBombs(Dictionary<string, Dictionary<string, string>> shadowGameBoardDictionary, int numberOfBombs) //this funnction should be called ONCE at the begining of a game session to place some bombs.
+            {
+                Random random = new Random();
+                Dictionary<string, string> result = new();
+                string row;
+                string column;
+                List<int> eligibleRowss = new List<int>();
+                {
+                    while (eligibleRowss.Count < shadowGameBoardDictionary.Keys.Count)
+                    {
+                        int randomInt = random.Next(0, shadowGameBoardDictionary.Keys.Count);
+                        if (!eligibleRowss.Contains(randomInt))
+                        {
+                            eligibleRowss.Add(randomInt);
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                    }
+                }
+                List<int> eligibleColumns = new List<int>();
+                {
+                    while (eligibleColumns.Count < shadowGameBoardDictionary.Keys.Count)
+                    {
+                        int randomInt = random.Next(0, shadowGameBoardDictionary.Keys.Count);
+                        if (!eligibleColumns.Contains(randomInt))
+                        {
+                            eligibleColumns.Add(randomInt);
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                    }
+                }
+                for (int i = 0; i < eligibleRowss.Count; i++)
+                {
+                    result.TryAdd(eligibleRowss.ElementAt(i).ToString(), eligibleColumns.ElementAt(i).ToString());
+                }
+                foreach (KeyValuePair<string, string> coordinates in result)
+                {
+                    placeBomb(shadowGameBoardDictionary, coordinates.Key, coordinates.Value);
+                }
+                return;
+            }
+
+            static Boolean computerSearchGameBoard(Dictionary<string, Dictionary<string, string>> shadowGameBoardDictionary, string row, string column) //this function searches the provided coordinates if they contain a bomb
+            {
+                switch (shadowGameBoardDictionary)
+                {
+                    case shadowGameBoardDictionary[row][column].Contains('O'):
+                        return false;
+                        break;
+                    case shadowGameBoardDictionary[row][column].Contains('X'):
+                        return false;
+                        break;
+                    case !shadowGameBoardDictionary[row][column].Contains('O'):
+                        return true;
+                        break;
+                    case !shadowGameBoardDictionary[row][column].Contains('X'):
+                        return true;
+                        break;
+                };
+                return false;
+            }
+
+            static void placeBomb(Dictionary<string, Dictionary<string, string>> shadowGameBoardDictionary, string row, string column) //this function updates a given field within a game board with a "bomb".
+            {
+                shadowGameBoardDictionary[row][column] = "X";
+            }
+
+            static void printGameBoard(Dictionary<string, Dictionary<string, string>> gameBoardDictionary) //this function will save the current state of the game's board to a string that can be displayed via console.
+            {
+                string result = "|    |";
+                string intermediate = "";
+                for (int i = 0; i < gameBoardDictionary.Keys.Count; i++)
+                {
+                    if(i.ToString().Length >= 2)
+                    {
+                        if (i == (gameBoardDictionary.Keys.Count - 1))
+                        {
+                            result = $"{result} {i} |";
+                        }
+                        else
+                        {
+                            result = $"{result} {i} |";
+                        }
+                    }
+                    else
+                    {
+                        if (i.ToString().Length == 1)
+                        {
+                            result = $"{result}  {i} |";
+                        }
+                        else
+                        {
+                            result = $"{result}  {i} |";
+                        }
+                    }
+                }
+                for (int outer = 0; outer < gameBoardDictionary.Keys.Count; outer++)
+                {
+                    if(outer.ToString().Length >= 2)
+                    {
+                        intermediate = $"{intermediate}| {outer} | ";
+                    }
+                    else if (outer.ToString().Length == 1)
+                    {
+                        intermediate = $"{intermediate}|  {outer} | ";
+                    }                    
+                    for (int inner = 0; inner < gameBoardDictionary.Keys.Count; inner++)
+                    {
+                        Dictionary<string, string> innerGameBoardDictionary = gameBoardDictionary[$"{outer}"];
+                        if (inner == (gameBoardDictionary.Keys.Count - 1))
+                        {
+                            intermediate = $"{intermediate}{innerGameBoardDictionary.Values.ElementAt(inner)} |\n";
+                        }
+                        else
+                        {
+                            intermediate = $"{intermediate}{innerGameBoardDictionary.Values.ElementAt(inner)} | ";
+                        }
+                    }
+                }
+                result = $"{result}\n{intermediate}";
+                Console.WriteLine(result);
+                return;
+            }
+        }
+    }
+}
