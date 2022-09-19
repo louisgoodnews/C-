@@ -1,0 +1,268 @@
+using System;
+using System.Linq;
+
+namespace MinesweeperGame
+{
+    public class Minesweeper
+    {
+        private const int NumberOfRows = 4;
+        private const int NumberOColumns = 4;
+
+        public static void Main(string[] args)
+        {
+            /*
+             currently known issues:
+                * there's no reliable way to determine if vertical ocurrences of player or computer symbol exist in game board
+            */
+
+            //DECLARATION:
+            string playerRepsone;
+            string playerSymbol;
+            string computerSymbol;
+            int gamePlayLoopCounter = 0;
+            Dictionary<string, Dictionary<string, string>> gameBoardDictionary;
+            Dictionary<string, Dictionary<string, string>> shadowGameBoardDictionary;
+
+            //ASSERTAIN PLAYER UNDERSTANDS THE RULES:
+            Console.WriteLine("Hello there!\nWelcome to discount TIcTacToe!");
+            Console.WriteLine("Are you familiar with the game's rules? <yes/no>");
+            playerRepsone = Console.ReadLine();
+            while (!Equals(playerRepsone.ToLower(), "yes"))
+            {
+                if (!Equals(playerRepsone.ToLower(), "no"))
+                {
+                    Console.WriteLine("Sorry, didn't quite catch that one. Care to repeat?");
+                    playerRepsone = Console.ReadLine();
+                }
+                else if (Equals(playerRepsone.ToLower(), "no"))
+                {
+                    explainTheRules();
+                }
+                Console.WriteLine("Have you understood the rules?");
+                playerRepsone = Console.ReadLine();
+            }
+            Console.WriteLine("Okay, let's go!");
+
+            Console.WriteLine("Please choose your symbol. <X/O>");
+            playerSymbol = Console.ReadLine().ToUpper();
+            if(Equals(playerSymbol, "X"))
+            {
+                computerSymbol = "O";
+            }
+            else
+            {
+                computerSymbol = "X";
+            }
+
+            Console.WriteLine($"Your symbol is: {playerSymbol} the computer will use {computerSymbol}");
+
+            //FUNCTION CALLS:
+            gameBoardDictionary = createGameBoard(NumberOfRows, NumberOColumns);
+            //printGameBoard(gameBoardDictionary);
+
+            return;
+
+            //PLAY THE GAME LOOP:
+            while (checkAllFiels(gameBoardDictionary))
+            {
+                Console.WriteLine($"current gamePlayLoopCounter: {gamePlayLoopCounter}");
+                Boolean isCurrentMoveValid = playerDoMakeMove(gameBoardDictionary, playerSymbol);
+                if (!isCurrentMoveValid)
+                {
+                    Console.WriteLine("Oh no, you've dug up a bomb!\nGame over!");
+                    return;
+                }
+                if (gamePlayLoopCounter == 10)
+                {
+                    Console.WriteLine("Seems like you might need a hint, am I correct? <yes/no>");
+                    playerRepsone = Console.ReadLine();
+                    if (Equals(playerRepsone.ToLower(), "yes"))
+                    {
+                        printGameBoard(shadowGameBoardDictionary);
+                    }
+                    gamePlayLoopCounter = 0;
+                }
+                printGameBoard(gameBoardDictionary);
+                gamePlayLoopCounter++;
+            }
+
+            //FUNCTIONS:
+            static void explainTheRules()
+            {
+                Console.WriteLine("Here are the rules as requested:\n1. Just don't die!\nGood luck!");
+            }
+
+            static Boolean playerDoMakeMove(Dictionary<string, Dictionary<string, string>> gameBoardDictionary, string playerSymbol)
+            {
+                string row;
+                string column;
+                Boolean isMoveValid;
+                Console.WriteLine($"Please select a field to place your symol: <row(0-{gameBoardDictionary.Keys.Count - 1}), column(0-{gameBoardDictionary.Keys.Count - 1})>");
+                string playerInput = Console.ReadLine();
+                while (!playerInput.Contains(',') || playerInput[0..playerInput.IndexOf(',')].Length > NumberOfRows.ToString().Length || playerInput[(playerInput.IndexOf(',') + 1)..playerInput.Length].Length > NumberOColumns.ToString().Length || int.Parse(playerInput[0..playerInput.IndexOf(',')]) > gameBoardDictionary.Keys.Count || int.Parse(playerInput[(playerInput.IndexOf(',') + 1)..playerInput.Length]) > gameBoardDictionary.Keys.Count)
+                {
+                    Console.WriteLine($"\"{playerInput[..playerInput.IndexOf(',')]}, {playerInput[playerInput.IndexOf(',')..playerInput.Length]}\" was not a valid entry. Please try again.");
+                    Console.WriteLine("Please select a field to dig: <row(0-9), column(0-9)>");
+                    playerInput = Console.ReadLine();
+                }
+                row = playerInput.ElementAt(0).ToString();
+                column = playerInput.ElementAt(playerInput.Length - 1).ToString();
+                isMoveValid = computerSearchGameBoard(gameBoardDictionary, row, column);
+                if (isMoveValid)
+                {
+                    Console.WriteLine("Outstanding move!");
+                    gameBoardDictionary[row][column] = playerSymbol;
+                    return true;
+                }
+                else
+                {
+                    Console.WriteLine("That didn't workk out. Please try again.");
+                    return playerDoMakeMove(gameBoardDictionary, playerSymbol);
+                }
+            }
+
+            static Boolean checkForWinner(Dictionary<string, Dictionary<string, string>> gameBoardDictionary, string row, string column, string playersmbol)
+            {
+                Boolean result;
+                int horizontalOccurences = new();
+                int verticalOccurences = new();
+                int diagonalOccurences = new();
+                for (int i = 1; i < gameBoardDictionary.Keys.Count; i++)
+                {
+                    if (gameBoardDictionary[row][i.ToString()].Contains(playersmbol))
+                    {
+                        horizontalOccurences = horizontalOccurences += 1;
+                    }
+                }
+                for(int i = 1; i < gameBoardDictionary.Keys.Count; i++)
+                {
+                    if(gameBoardDictionary[i.ToString()][column].Contains(playersmbol))
+                    {
+                        verticalOccurences = horizontalOccurences += 1;
+                    }
+                }
+                if(horizontalOccurences == 3 || verticalOccurences == 3)
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            static Boolean checkAllFiels(Dictionary<string, Dictionary<string, string>> gameBoardDictionary)
+            {
+                Boolean result;
+                List<string> allFields = new();
+                Dictionary<string, string> innerDictionary = new();
+                for (int i = 0; i < gameBoardDictionary.Keys.Count; i++)
+                {
+                    innerDictionary = gameBoardDictionary[$"{i}"];
+                    foreach (KeyValuePair<string, string> keyValuePair in innerDictionary)
+                    {
+                        allFields.Add(keyValuePair.Value.Trim());
+                    }
+                }
+                if (allFields.Contains(" "))
+                {
+                    result = true;
+                }
+                else
+                {
+                    result = false;
+                }
+                return result;
+            }
+
+            static Dictionary<string, Dictionary<string, string>> createGameBoard(int numberOfRows, int numberOfColumns) //creates an instance of a game board with number of rows and columns in relation to the params provided.
+            {
+                if (numberOfRows > 60 || numberOfColumns > 60)
+                {
+#pragma warning disable CA2208 // Argumentausnahmen korrekt instanziieren
+                    throw new ArgumentOutOfRangeException("Numbers of columns or rows must not exceed 60!");
+#pragma warning restore CA2208 // Argumentausnahmen korrekt instanziieren
+                }
+                Dictionary<string, Dictionary<string, string>> result = new();
+                for (int outer = 1; outer < numberOfRows; outer++)
+                {
+                    Dictionary<string, string> innerResult = new();
+                    for (int inner = 1; inner < numberOfColumns; inner++)
+                    {
+                        innerResult.Add(inner.ToString(), "  ");
+                    }
+                    result.Add(outer.ToString(), innerResult);
+                }
+                return result;
+            }
+
+            static Boolean computerSearchGameBoard(Dictionary<string, Dictionary<string, string>> shadowGameBoardDictionary, string row, string column) //this function searches the provided coordinates if they contain a bomb
+            {
+                if (shadowGameBoardDictionary[row][column] == null)
+                {
+                    return true;
+                } else
+                {
+                    return false;
+                }
+            }
+
+            static void printGameBoard(Dictionary<string, Dictionary<string, string>> gameBoardDictionary) //this function will save the current state of the game's board to a string that can be displayed via console.
+            {
+                string result = "|    |";
+                string intermediate = "";
+                for (int i = 1; i < gameBoardDictionary.Keys.Count; i++)
+                {
+                    if (i.ToString().Length >= 2)
+                    {
+                        if (i == (gameBoardDictionary.Keys.Count - 1))
+                        {
+                            result = $"{result} {i} |";
+                        }
+                        else
+                        {
+                            result = $"{result} {i} |";
+                        }
+                    }
+                    else
+                    {
+                        if (i.ToString().Length == 1)
+                        {
+                            result = $"{result}  {i} |";
+                        }
+                        else
+                        {
+                            result = $"{result}  {i} |";
+                        }
+                    }
+                }
+                for (int outer = 1; outer < gameBoardDictionary.Keys.Count; outer++)
+                {
+                    if (outer.ToString().Length >= 2)
+                    {
+                        intermediate = $"{intermediate}| {outer} | ";
+                    }
+                    else if (outer.ToString().Length == 1)
+                    {
+                        intermediate = $"{intermediate}|  {outer} | ";
+                    }
+                    for (int inner = 1; inner < gameBoardDictionary.Keys.Count; inner++)
+                    {
+                        Dictionary<string, string> innerGameBoardDictionary = gameBoardDictionary[$"{outer}"];
+                        if (inner == (gameBoardDictionary.Keys.Count - 1))
+                        {
+                            intermediate = $"{intermediate}{innerGameBoardDictionary.Values.ElementAt(inner)} |\n";
+                        }
+                        else
+                        {
+                            intermediate = $"{intermediate}{innerGameBoardDictionary.Values.ElementAt(inner)} | ";
+                        }
+                    }
+                }
+                result = $"{result}\n{intermediate}";
+                Console.WriteLine(result);
+                return;
+            }
+        }
+    }
+}
