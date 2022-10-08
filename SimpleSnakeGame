@@ -167,12 +167,21 @@ namespace SimpleSnakeGame{
 					break;
 			}
 			
+			/*
+			condition will end the game when the snake hits a wall
 			if (atX > width || atY < 0 || atY > height || atY < 0)
 			{
 				
 				isGameOver = true;
 				cout << "Game over!" << endl;
 			}
+			*/
+			
+			//will transition the snake to the other side of the field if it hits a wall
+			if (atX >= width) atX = 0; else if (atX < width) atX = width-1;
+			
+			//will transition the snake to the other side of the field if it hits a wall
+			if (atY >= height) atY = 0; else if (atY < height) atY = height-1;
 			
 			for (int i = 0; snakeLength; i++)
 			{
