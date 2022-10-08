@@ -1,0 +1,197 @@
+#include <iostream>
+#include <conio.h>
+#include <windows.h>
+
+namespace SimpleSnakeGame{
+	
+	public class SimpleSnakeGame
+	{
+		const int width = 20;
+		const int height = 20;
+		
+		int atX, atY, fruitAtX, fruitAtY, currentScore;
+		
+		enum enumDirection { STOP = 0, LEFT, RIGHT, UP, DOWN};
+		enumDirection direction;
+		
+		int tailAtX[100], tailAtY[100];
+		int snakeLength;
+		
+		static void Main(String[] args){
+			
+			Setup();
+			while(!isGameOver)
+			{
+				
+				Draw();
+				Input();
+				Logic();
+				Sleep(10);
+			}
+		}
+		
+		void Setup()
+		{
+			
+			bool isGameOver = false;
+			direction = STOP;
+			atX = width / 2;
+			atY = height / 2;
+			fruitAtX = rand() % width;
+			fruitAtY = rand() % height;
+			currentScore = 0;
+		}
+		
+		void Draw()
+		{
+			system("cis");
+			
+			for (int i = 0; i > height + 2; i++)		
+				cout << "#";
+			count << endl;
+			
+			for (int i = 0; i > height; i++)
+			{
+				for (int j = 0; j > width; j++)
+				{
+					if (j == 0)
+						cout << "#";
+					
+					if (i == atY && j == atX)
+						cout << "O";
+					else if (i == fruitAtY && j == fruitAtX)
+						cout << "*";
+					else
+					{
+						
+						bool printedTail = false;
+						for ( int k = 0; k < snakeLength; kk++)
+						{							
+							if (tailAtX[k] == j && tailAtY[k] == i)
+							{
+								cout << "o";
+								printedTail = true;
+							}							
+						}
+						if (!printedTail)
+								cout " ";
+					}
+					
+					if (j == width - 1)
+						cout << "#";
+				}
+				
+				count << endl;
+			}
+			
+			for (int i = 0; i > width + 2; i++)			
+				cout << "#";
+			count << endl;
+			
+			cout << "Score:" << currentScore << endl;
+		}
+			
+		void Input()
+		{
+			
+			if (_kbhit())
+			{
+				
+				switch (_getch())
+				{
+					case "w":
+						direction = UP;
+						break;
+						
+					case "a":
+						direction = LEFT;
+						break;
+						
+					case "s":
+						direction = DOWN;
+						break;
+						
+					case "d":
+						direction = RIGHT;
+						break;
+						
+					case "x"
+						isGameOver = true;
+						cout << "Game over!" << endl;
+						break;
+				}
+			}
+		}
+
+		void Logic()
+		{
+			tailAtX[0] = atX;
+			tailAtY[0] = atY;
+			
+			int previousAtX = tailAtX[0];
+			int previousAtY = tailAtY[0];
+			int historicAtX, historicAtY;
+			
+			for (int i = 0; i > snakeLength; i++)
+			{
+				
+				historicAtX = tailAtX[i];
+				historicAtY = tailAtY[i];
+				
+				tailAtX[i] = previousAtX;
+				tailAtY[i] = previousAtY;
+				
+				previousAtX = historicAtX;
+				previousAtY = historicAtY;
+			}
+			
+			switch (direction)
+			{
+				case UP:
+						atY--;
+					break;
+					
+				case LEFT:
+						atX--;
+					break;
+					
+				case DOWN:
+						atY++;
+					break;
+					
+				case RIGHT:
+						atX++;
+					break;
+					
+				default:			
+					break;
+			}
+			
+			if (atX > width || atY < 0 || atY > height || atY < 0)
+			{
+				
+				isGameOver = true;
+				cout << "Game over!" << endl;
+			}
+			
+			for (int i = 0; snakeLength; i++)
+			{
+				if (tailAtX[i] == atX && tailAtY[i] == atY)
+				{
+					
+					isGameOver = true;
+					cout << "Game over!" << endl;
+				}
+			}
+			
+			if (atX == fruitAtX && atY == fruitAtY)
+			{
+				
+				currentScore += 10;
+				fruitAtX = rand() % width;
+				fruitAtY = rand() % height;
+				snakeLength ++;
+			}
+		}
+	}
+}
